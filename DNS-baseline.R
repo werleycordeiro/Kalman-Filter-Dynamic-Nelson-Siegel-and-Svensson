@@ -1,15 +1,15 @@
-#-----------------#
-#   DNS-baseline  #
-#-----------------#
+# author: Werley Cordeiro
+# werleycordeiro@gmail.com
+
+# Packages
+
 list.of.packages <- c("optimParallel")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 library(optimParallel)
-#------------------#
-# 	Dados      #
-#------------------#
 
-#setwd("C:\\Users\\werle\\Dropbox\\Mestrado_UFSC\\4_Semestre\\DNS\\DNS-baseline")
+# Data
+#setwd("C:\\...")
 #data <- read.csv("bonds.csv",header = TRUE, sep = ";")
 data<-read.csv("https://www.dropbox.com/s/inpnlugzkddp42q/bonds.csv?dl=1",header = TRUE, sep = ";")#***
 require(xts)
@@ -19,13 +19,10 @@ data<- xts(data, order.by = datas)
 data1<- xts(data, order.by = datas) #***
 
 
-#------------------------------#
-#   Parâmetros Iniciais        #
-#------------------------------#
-
-# 36
+# Initial Parameters (Total: 36)  
 # Lambda, Matriz H (17x17), Matriz Phi(3x3),Vetor mu (4x1), Matriz Q (3x3), 
- 
+
+# See Dynamic-Nelson-Siegel to initial Parameters
 para<-c(0.0609,
 
 0.14170940,0.07289485,0.11492339,0.11120008,0.09055795,0.07672075,0.07222108,0.07076431,0.07012891,0.07267366,0.10624206,0.09029621,0.10374527,0.09801215,0.09122014,0.11794190,0.13354418,
@@ -40,20 +37,18 @@ para<-c(0.0609,
 -0.07882772,0.62661018,
 -0.21351036,-0.00425989,1.08802059)
 
-#------------------#
-# Filtro de Kalman #
-#------------------#
+# Kalman Filter
 
-prev<- FALSE #***
+prev<- FALSE # Forecast
 ahead<-12 #***
-lik <- TRUE # Porque quero analisar somente o valor do loglikelihood.
+lik <- TRUE # Because I want to analyze only the value of the loglikelihood function.
 
 kalman <- function(para,Y,lik,prev,ahead) {#***
   l   <- para[1]
   Nelson.Siegel.factor.loadings <- function(l)
   {
     m <- c(3,6,9,12,15,18,21,24,30,36,48,60,72,84,96,108,120)
-	column1 <- rep.int(1,length(m))
+    column1 <- rep.int(1,length(m))
     column2 <- (1 - exp(-l * m))/(l * m)
     column3 <- column2 - exp(-l * m)
     
@@ -62,36 +57,34 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
     lambmat
   }  
   
-  M<-ahead#***
+  M<-ahead #***
   
-	  if(prev){#***
-	  T <- nrow(Y)
-	  Yf<-Y
-	  Yf[(T-M+1):T,]<-NA
-	  Y<-Y[1:(T-M),]
-	  T <- nrow(Y)
-	  }else{
-	  T <- nrow(Y)
-	  }#***
-	  
+	  if(prev){#*** Forecast
+		  T <- nrow(Y)
+		  Yf<-Y
+		  Yf[(T-M+1):T,]<-NA
+		  Y<-Y[1:(T-M),]
+		  T <- nrow(Y)
+		  }else{
+		  T <- nrow(Y)}#***
   pars<-list()
   W <- ncol(Y)
   N <- 3
   
-  pars$mu	<- matrix(NA,N,1)
-  pars$phi	<- diag(N)
-  pars$H	<- diag(ncol(Y))
-  pars$Q	<- diag(N)
-  pars$Z	<- Nelson.Siegel.factor.loadings(l)
+  pars$mu	<- matrix(NA,N,1) # Mean vector
+  pars$phi	<- diag(N) # Vector autoregressive coeffient matrix VAR(1)	
+  pars$H	<- diag(ncol(Y)) # Variance matrix of residuals
+  pars$Q	<- diag(N) # Transition covariance matrix of residuals
+  pars$Z	<- Nelson.Siegel.factor.loadings(l) # # loading matrix
   
-  # disturbance covariance matrix 
+  # Variance matrix of residuals
   for(i in 1:17){
   pars$H[i,i]<-para[1 + i]
   }
 
   H <- pars$H^2
   
-  # Matriz de coeficientes do VAR.
+  # Vector autoregressive coeffient matrix VAR(1)
   pars$phi[1,1] <- para[19]
   pars$phi[1,2] <- para[20]
   pars$phi[1,3] <- para[21]
@@ -102,12 +95,12 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   pars$phi[3,2] <- para[26]
   pars$phi[3,3] <- para[27]
   
-  # 3 mean state vector
+  # Mean state vector
   pars$mu[1]<-para[28]
   pars$mu[2]<-para[29]
   pars$mu[3]<-para[30]
   
-  # transition covariance matrix of residuals
+  # Transition covariance matrix of residuals
   pars$Q[1,1] <- para[31]
   pars$Q[2,1] <- para[32]
   pars$Q[2,2] <- para[33]
@@ -119,9 +112,9 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   
   v2   <- matrix(NA,T,W)			
   
-  if(prev){#***
+  if(prev){#*** Forecast *************Parei aqui...
 	  a.tt <- matrix(NA, (T+M), N)
-	  a.t  <- matrix(NA, (T+M+1), N) # caso prev=TRUE, sempre será dim(a.t)[1]=348
+	  a.t  <- matrix(NA, (T+M+1), N) # if prev=TRUE, always will be dim(a.t)[1]=348
 	  P.tt <- array(NA, c((T+M), N, N))
 	  P.t  <- array(NA, c((T+M+1), N, N))
   }else{
