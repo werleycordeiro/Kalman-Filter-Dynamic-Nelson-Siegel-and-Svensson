@@ -29,11 +29,11 @@ para<-c(0.0609,
 -0.07882772,0.62661018,
 -0.21351036,-0.00425989,1.08802059)
 
-# Kalman Filter
-
 prev<- FALSE # TRUE to Forecast.
 ahead<-12 # X-step ahead forecast
 lik <- TRUE # TRUE to return the value of the loglikelihood function. FALSE to return parameters.
+
+# Kalman Filter function
 
 kalman <- function(para,Y,lik,prev,ahead) {#***
   l   <- para[1]
