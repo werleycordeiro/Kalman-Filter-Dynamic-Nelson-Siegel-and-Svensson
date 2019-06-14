@@ -1,13 +1,6 @@
 # author: Werley Cordeiro
 # werleycordeiro@gmail.com
 
-# Packages
-
-list.of.packages <- c("optimParallel")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages)
-library(optimParallel)
-
 # Data
 #setwd("C:\\...")
 #data <- read.csv("bonds.csv",header = TRUE, sep = ";")
