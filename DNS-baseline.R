@@ -12,10 +12,9 @@ data<- xts(data, order.by = datas)
 data1<- xts(data, order.by = datas) #***
 
 
-# Initial Parameters (Total: 36)  
-# Lambda, Matriz H (17x17), Matriz Phi(3x3),Vetor mu (4x1), Matriz Q (3x3), 
+# Initial Parameters (See Dynamic-Nelson-Siegel to initial Parameters)  
+# Lambda(1x1), H diag matrix (17x17), phi matrix (3x3), mu vector (3x1), Q matrix (3x3). Total: 36 parameters
 
-# See Dynamic-Nelson-Siegel to initial Parameters
 para<-c(0.0609,
 
 0.14170940,0.07289485,0.11492339,0.11120008,0.09055795,0.07672075,0.07222108,0.07076431,0.07012891,0.07267366,0.10624206,0.09029621,0.10374527,0.09801215,0.09122014,0.11794190,0.13354418,
