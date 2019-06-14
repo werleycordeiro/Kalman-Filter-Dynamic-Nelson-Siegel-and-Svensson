@@ -77,7 +77,7 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
 
   H <- pars$H^2
   
-  # Vector autoregressive coeffient matrix VAR(1)
+  # Vector autoregressive coeffient matrix: VAR(1)
   pars$phi[1,1] <- para[19]
   pars$phi[1,2] <- para[20]
   pars$phi[1,3] <- para[21]
@@ -103,7 +103,7 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   
   Q <- pars$Q %*% t(pars$Q) 
   
-  v2   <- matrix(NA,T,W)			
+  v2   <- matrix(NA,T,W) # Filtered errors: are defined as the difference between the observed yield curve and its filtered estimate from KF
   
   # Forecast 	
   if(prev){#*** 
@@ -128,19 +128,19 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   # Filter
   for (t in 1:T) 
   {
-	v <- (as.numeric(Y[t, ])) - pars$Z %*% a.t[t, ] # one-step ahead forecast error of Yt
-	F <- pars$Z %*% P.t[t, ,] %*% t(pars$Z) + H # matriz var-cov do erro de previsão
+	v <- (as.numeric(Y[t, ])) - pars$Z %*% a.t[t, ] # prediciton error vector
+	F <- pars$Z %*% P.t[t, ,] %*% t(pars$Z) + H # prediciton error variance matrix
 		if(det(F)<=1e-30 || is.na(det(F)) || is.nan(det(F)) || is.infinite(det(F))){
 			logLik<- -1000000000000000; break
 		}else{
     F.inv  <- solve(F)
     # Log-likelihood
-    logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v)
-    # Update
+    logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
+    # Updating the state vector and its variance matrix
     a.tt[t, ]   <- a.t[t, ] +  P.t[t, , ] %*% t(pars$Z) %*% F.inv %*% v
     P.tt[t, , ] <- P.t[t, , ] - P.t[t, , ] %*% t(pars$Z) %*% F.inv %*% pars$Z %*% P.t[t, , ]
-    v2[t, ] <- (as.numeric(Y[t, ])) - pars$Z %*% a.tt[t, ]
-    # Predict
+    v2[t, ] <- (as.numeric(Y[t, ])) - pars$Z %*% a.tt[t, ] # Filtered errors
+    # Predicting the state vector and its variance matrix
     a.t[t + 1, ]  <- pars$phi %*% a.tt[t, ] + (diag(N) - pars$phi) %*% pars$mu  
     P.t[t + 1, ,] <- pars$phi %*% P.tt[t, ,] %*% t(pars$phi) + Q
 	}
@@ -165,14 +165,13 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   {
     return(list(a.tt=a.tt,a.t=a.t,P.tt=P.tt,P.t=P.t,v2=v2,Yf=Yf)) #****
   } 
-
 }
 results<-kalman(para=para,Y=data,lik=lik,prev=prev,ahead=ahead) #**** 
 results
 
 # -2887.301 full sample
 
-# Optimization  
+# Numerical Optimization  
 
 # Lower bound & Upper bound 
 
@@ -203,9 +202,7 @@ up<-c(0.99999,
 
 #  nlminb
 
- 
 otim<-nlminb(para,kalman,Y=data,lik=lik,prev=prev,ahead=ahead,control = list(trace=1,iter.max=50000),lower=low,upper=up)
-
 
 '
 # Parameters after optimization
