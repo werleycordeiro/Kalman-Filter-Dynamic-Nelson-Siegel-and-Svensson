@@ -39,9 +39,9 @@ para<-c(0.0609,
 
 # Kalman Filter
 
-prev<- FALSE # Forecast
-ahead<-12 #***
-lik <- TRUE # Because I want to analyze only the value of the loglikelihood function.
+prev<- FALSE # TRUE to Forecast.
+ahead<-12 # X-step ahead forecast
+lik <- TRUE # TRUE to return the value of the loglikelihood function. FALSE to return parameters.
 
 kalman <- function(para,Y,lik,prev,ahead) {#***
   l   <- para[1]
@@ -72,10 +72,10 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   N <- 3
   
   pars$mu	<- matrix(NA,N,1) # Mean vector
-  pars$phi	<- diag(N) # Vector autoregressive coeffient matrix VAR(1)	
+  pars$phi	<- diag(N) # Vector Autoregressive coeffient matrix VAR(1)	
   pars$H	<- diag(ncol(Y)) # Variance matrix of residuals
   pars$Q	<- diag(N) # Transition covariance matrix of residuals
-  pars$Z	<- Nelson.Siegel.factor.loadings(l) # # loading matrix
+  pars$Z	<- Nelson.Siegel.factor.loadings(l) # Loading matrix
   
   # Variance matrix of residuals
   for(i in 1:17){
@@ -95,7 +95,7 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   pars$phi[3,2] <- para[26]
   pars$phi[3,3] <- para[27]
   
-  # Mean state vector
+  # Mean vector
   pars$mu[1]<-para[28]
   pars$mu[2]<-para[29]
   pars$mu[3]<-para[30]
@@ -112,7 +112,8 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
   
   v2   <- matrix(NA,T,W)			
   
-  if(prev){#*** Forecast *************Parei aqui...
+  # Forecast 	
+  if(prev){#*** 
 	  a.tt <- matrix(NA, (T+M), N)
 	  a.t  <- matrix(NA, (T+M+1), N) # if prev=TRUE, always will be dim(a.t)[1]=348
 	  P.tt <- array(NA, c((T+M), N, N))
@@ -124,31 +125,34 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
 	  P.t  <- array(NA, c((T+1), N, N))
   }#***
   
-  a.t[1, ]  <- pars$mu #pars$at0
-  P.t[1, ,] <- matrix(solve(diag(N^2) - kronecker(pars$phi,pars$phi)) %*% matrix(Q,(N^2),1),N,N)  # pars$Pt0 #
+  # Start state vector and variance matrix
+  a.t[1, ]  <- pars$mu # Start state vector: pars$at0
+  P.t[1, ,] <- matrix(solve(diag(N^2) - kronecker(pars$phi,pars$phi)) %*% matrix(Q,(N^2),1),N,N)  # Start variance matrix: Lyapunov equation. pars$Pt0 # 
   
+  # Initial loglikelihood	
   logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
   
-  # Filtro
+  # Filter
   for (t in 1:T) 
   {
-    # Log-likelihood
-	v <- (as.numeric(Y[t, ])) - pars$Z %*% a.t[t, ] # erro de previsão modificado
-    F <- pars$Z %*% P.t[t, ,] %*% t(pars$Z) + H # matriz var-cov do erro de previsão
+	v <- (as.numeric(Y[t, ])) - pars$Z %*% a.t[t, ] # one-step ahead forecast error of Yt
+	F <- pars$Z %*% P.t[t, ,] %*% t(pars$Z) + H # matriz var-cov do erro de previsão
 		if(det(F)<=1e-30 || is.na(det(F)) || is.nan(det(F)) || is.infinite(det(F))){
 			logLik<- -1000000000000000; break
 		}else{
-	F.inv  <- solve(F)
+    F.inv  <- solve(F)
+    # Log-likelihood
     logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v)
-	# Update
+    # Update
     a.tt[t, ]   <- a.t[t, ] +  P.t[t, , ] %*% t(pars$Z) %*% F.inv %*% v
-	P.tt[t, , ] <- P.t[t, , ] - P.t[t, , ] %*% t(pars$Z) %*% F.inv %*% pars$Z %*% P.t[t, , ]
+    P.tt[t, , ] <- P.t[t, , ] - P.t[t, , ] %*% t(pars$Z) %*% F.inv %*% pars$Z %*% P.t[t, , ]
     v2[t, ] <- (as.numeric(Y[t, ])) - pars$Z %*% a.tt[t, ]
-	# Predict
-	a.t[t + 1, ]  <- pars$phi %*% a.tt[t, ] + (diag(N) - pars$phi) %*% pars$mu  
-	P.t[t + 1, ,] <- pars$phi %*% P.tt[t, ,] %*% t(pars$phi) + Q
+    # Predict
+    a.t[t + 1, ]  <- pars$phi %*% a.tt[t, ] + (diag(N) - pars$phi) %*% pars$mu  
+    P.t[t + 1, ,] <- pars$phi %*% P.tt[t, ,] %*% t(pars$phi) + Q
 	}
-		if(prev) # Forecast
+	  # Forecast
+		if(prev) 
 		{
 		  if(t > (T - 1))
 			  for(m in 1:M)
@@ -175,13 +179,9 @@ results
 
 # -2887.301 full sample
 
-#--------------#
-#  Otimização  #
-#--------------#
+# Optimization  
 
-#-----------#
-#  LB & UB  #
-#-----------#
+# Lower bound & Upper bound 
 
 low<-c(0.00001,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -207,9 +207,9 @@ up<-c(0.99999,
 	1.25,1.25,
 	1.25,1.25,1.25)
 
-#----------#
-#  nlminb  # full sample
-#----------#
+
+#  nlminb
+
 ' 
 otim<-nlminb(para,kalman,Y=data,lik=lik,prev=prev,ahead=ahead,control = list(trace=1,iter.max=50000),lower=low,upper=up)
 '
@@ -248,134 +248,3 @@ function gradient
 $message
 [1] "function evaluation limit reached without convergence (9)"
 '
-
-#---------------------------------#
-# Gráfico p/ teste na full sample #
-#---------------------------------#
-
-#ts.plot(as.numeric(data1[337,]),type="p",ylim=c(4,7))
-#lines(as.numeric(results$Yf[337,]))
-
-#----------#
-# Previsão #
-#----------#
-
-# Dividi a amostra em quatro partições: P1:[1:261,] até [21:281,]  #21 janelas
-#										P2:[22:282,] até [42:302,] #21 janelas
-#										P3:[43:303,] até [63:323,] #21 janelas
-#										P4:[64:324,] até [88:348,] #25 janelas. Total = 21 + 21 + 21 + 25 = 88 janelas
-# Em cada janela de cada partição, isto é, na partição 1, janela [1:261,], [2:262,], [3:263,], ..., os parâmetros foram estimados
-# baseados nos dados até t-12. Por exemplo: em P1 [1:249,], os parâmetros são estimados e então as previsões 12 passos a frente são feitas.  
-
-#-------------#
-# Partição 1  #
-#-------------#
-checkin<-Sys.time()
-mse<-array(NA,c(12,17,21)) # mudar último elemento dependendo do número de previsões com otimização
-colnames(mse)<-c("M3","M6","M9","M12","M15","M18","M21","M24","M30","M36","M48","M60","M72","M84","M96","M108","M120")
-rownames(mse)<-c("1 month","2 months","3 months","4 months","5 months","6 months",
-                  "7 months","8 months","9 months","10 months","11 months","12 months")
-				  
-for(j in 1:21){
-data2<-data[j:(260+j),]
-lik<-TRUE
-prev<- FALSE
-otim<-nlminb(para,kalman,Y=data2,lik=lik,prev=prev,ahead=ahead,control = list(trace=1,iter.max=500),lower=low,upper=up)
-lik<-FALSE
-prev<-TRUE
-ahead<-12
-results<-kalman(para=otim$par,Y=data2,lik=lik,prev=prev,ahead=ahead)
-	for(i in 1:12)
-	{
-	  mse[i,,j]<-(results$Yf[i+(261-12),]-data2[i+(261-12),])^2 # falta calcular a média e tirar a raiz quadrada. 13 pq ahead+1
-	}
-print(c("Finalizado iteração & previsão DNS-base---->",j))
-}
-mse1.DNS.base<-mse
-save(mse1.DNS.base,file="mse1.DNS.base.rda")
-checkout<-Sys.time()
-checkout-checkin
-#-------------#
-# Partição 2  #
-#-------------#
-checkin<-Sys.time()
-mse<-array(NA,c(12,17,21)) # mudar último elemento dependendo do número de previsões com otimização
-colnames(mse)<-c("M3","M6","M9","M12","M15","M18","M21","M24","M30","M36","M48","M60","M72","M84","M96","M108","M120")
-rownames(mse)<-c("1 month","2 months","3 months","4 months","5 months","6 months",
-                  "7 months","8 months","9 months","10 months","11 months","12 months")
-				  
-for(j in 1:21){
-data2<-data[(21+j):(281+j),]
-lik<-TRUE
-prev<- FALSE
-otim<-nlminb(para,kalman,Y=data2,lik=lik,prev=prev,ahead=ahead,control = list(trace=1,iter.max=500),lower=low,upper=up)
-lik<-FALSE
-prev<-TRUE
-ahead<-12
-results<-kalman(para=otim$par,Y=data2,lik=lik,prev=prev,ahead=ahead)
-	for(i in 1:12)
-	{
-	  mse[i,,j]<-(results$Yf[i+(261-12),]-data2[i+(261-12),])^2 # falta calcular a média e tirar a raiz quadrada. 13 pq ahead+1
-	}
-print(c("Finalizado iteração & previsão DNS-base---->",21+j))
-}
-mse2.DNS.base<-mse
-save(mse2.DNS.base,file="mse2.DNS.base.rda")
-checkout<-Sys.time()
-checkout-checkin
-#-------------#
-# Partição 3  #
-#-------------#
-checkin<-Sys.time()
-mse<-array(NA,c(12,17,21)) # mudar último elemento dependendo do número de previsões com otimização
-colnames(mse)<-c("M3","M6","M9","M12","M15","M18","M21","M24","M30","M36","M48","M60","M72","M84","M96","M108","M120")
-rownames(mse)<-c("1 month","2 months","3 months","4 months","5 months","6 months",
-                  "7 months","8 months","9 months","10 months","11 months","12 months")
-				  
-for(j in 1:21){
-data2<-data[(42+j):(302+j),]
-lik<-TRUE
-prev<- FALSE
-otim<-nlminb(para,kalman,Y=data2,lik=lik,prev=prev,ahead=ahead,control = list(trace=1,iter.max=500),lower=low,upper=up)
-lik<-FALSE
-prev<-TRUE
-ahead<-12
-results<-kalman(para=otim$par,Y=data2,lik=lik,prev=prev,ahead=ahead)
-	for(i in 1:12)
-	{
-	  mse[i,,j]<-(results$Yf[i+(261-12),]-data2[i+(261-12),])^2 # falta calcular a média e tirar a raiz quadrada. 13 pq ahead+1
-	}
-print(c("Finalizado iteração & previsão DNS-base---->",42+j))
-}
-mse3.DNS.base<-mse
-save(mse3.DNS.base,file="mse3.DNS.base.rda")
-checkout<-Sys.time()
-checkout-checkin
-#-------------#
-# Partição 4  #
-#-------------#
-checkin<-Sys.time()
-mse<-array(NA,c(12,17,25)) # mudar último elemento dependendo do número de previsões com otimização
-colnames(mse)<-c("M3","M6","M9","M12","M15","M18","M21","M24","M30","M36","M48","M60","M72","M84","M96","M108","M120")
-rownames(mse)<-c("1 month","2 months","3 months","4 months","5 months","6 months",
-                  "7 months","8 months","9 months","10 months","11 months","12 months")
-				  
-for(j in 1:25){
-data2<-data[(63+j):(323+j),]
-lik<-TRUE
-prev<- FALSE
-otim<-nlminb(para,kalman,Y=data2,lik=lik,prev=prev,ahead=ahead,control = list(trace=1,iter.max=500),lower=low,upper=up)
-lik<-FALSE
-prev<-TRUE
-ahead<-12
-results<-kalman(para=otim$par,Y=data2,lik=lik,prev=prev,ahead=ahead)
-	for(i in 1:12)
-	{
-	  mse[i,,j]<-(results$Yf[i+(261-12),]-data2[i+(261-12),])^2 # falta somar, dividir por R e tirar a raiz quadrada. 13 pq ahead+1
-	}
-print(c("Finalizado iteração & previsão DNS-base---->",63+j))
-}
-mse4.DNS.base<-mse
-save(mse4.DNS.base,file="mse4.DNS.base.rda")
-checkout<-Sys.time()
-checkout-checkin
