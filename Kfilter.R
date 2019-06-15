@@ -14,6 +14,7 @@ for (t in 1:T)
     # Updating the state vector and its variance matrix
     a.tt[t, ]   <- a.t[t, ] +  P.t[t, , ] %*% t(Z) %*% F.inv %*% v
     P.tt[t, , ] <- P.t[t, , ] - P.t[t, , ] %*% t(Z) %*% F.inv %*% Z %*% P.t[t, , ]
+    v1[t, ]	<- Z %*% a.tt[t, ]
     v2[t, ] <- (as.numeric(Y[t, ])) - Z %*% a.tt[t, ] # Filtered errors
     # Predicting the state vector and its variance matrix
     a.t[t + 1, ]  <- phi %*% a.tt[t, ] + (diag(N) - phi) %*% mu  
@@ -36,6 +37,6 @@ for (t in 1:T)
   {
     as.numeric(-logLik)
   }else{
-    return(list(a.tt=a.tt,a.t=a.t,P.tt=P.tt,P.t=P.t,v2=v2,Yf=Yf)) #****
+    return(list(a.tt=a.tt,a.t=a.t,P.tt=P.tt,P.t=P.t,v2=v2,v1=v1,Yf=Yf)) #****
   }
 }	
