@@ -36,75 +36,71 @@ lik <- TRUE # TRUE to return the value of the loglikelihood function. FALSE to r
 # Kalman Filter function
 
 kalman <- function(para,Y,lik,prev,ahead) {#***
-  l   <- para[1]
-  Nelson.Siegel.factor.loadings <- function(l)
-  {
-    m <- c(3,6,9,12,15,18,21,24,30,36,48,60,72,84,96,108,120)
-    column1 <- rep.int(1,length(m))
-    column2 <- (1 - exp(-l * m))/(l * m)
-    column3 <- column2 - exp(-l * m)
-    
-    lambmat <- cbind(column1,column2,column3)
-    
-    lambmat
-  }  
+l<- para[1]
+m<- c(3,6,9,12,15,18,21,24,30,36,48,60,72,84,96,108,120)
+M<-ahead #***
   
-  M<-ahead #***
-  
-	  if(prev){#*** Forecast
+# Resize data if Forecast is on.
+
+  if(prev){#*** Forecast
 		  T <- nrow(Y)
 		  Yf<-Y
 		  Yf[(T-M+1):T,]<-NA
 		  Y<-Y[1:(T-M),]
 		  T <- nrow(Y)
-		  }else{
+  }else{
 		  T <- nrow(Y)}#***
-  pars<-list()
-  W <- ncol(Y)
-  N <- 3
   
-  pars$mu	<- matrix(NA,N,1) # Mean vector
-  pars$phi	<- diag(N) # Vector Autoregressive coeffient matrix VAR(1)	
-  pars$H	<- diag(ncol(Y)) # Variance matrix of residuals
-  pars$Q	<- diag(N) # Transition covariance matrix of residuals
-  pars$Z	<- Nelson.Siegel.factor.loadings(l) # Loading matrix
+pars<-list()
+W <- ncol(Y)
+N <- 3
   
-  # Variance matrix of residuals
+# Create vectors and matrix
+
+pars$mu	<- matrix(NA,N,1) # Mean vector
+pars$phi<- diag(N) # Vector Autoregressive coeffient matrix VAR(1)	
+pars$H	<- diag(ncol(Y)) # Variance matrix of residuals
+pars$Q	<- diag(N) # Transition covariance matrix of residuals
+source("Nelson.Siegel.factor.loadings.R")
+pars$Z	<- Nelson.Siegel.factor.loadings(l,m) # Loading matrix
+  
+# Variance matrix of residuals
+
   for(i in 1:17){
-  pars$H[i,i]<-para[1 + i]
+    pars$H[i,i]<-para[1 + i]
   }
 
-  H <- pars$H^2
+H <- pars$H^2
   
-  # Vector autoregressive coeffient matrix: VAR(1)
-  pars$phi[1,1] <- para[19]
-  pars$phi[1,2] <- para[20]
-  pars$phi[1,3] <- para[21]
-  pars$phi[2,1] <- para[22]
-  pars$phi[2,2] <- para[23]
-  pars$phi[2,3] <- para[24]
-  pars$phi[3,1] <- para[25]
-  pars$phi[3,2] <- para[26]
-  pars$phi[3,3] <- para[27]
+# Vector autoregressive coeffient matrix: VAR(1)
+pars$phi[1,1] <- para[19]
+pars$phi[1,2] <- para[20]
+pars$phi[1,3] <- para[21]
+pars$phi[2,1] <- para[22]
+pars$phi[2,2] <- para[23]
+pars$phi[2,3] <- para[24]
+pars$phi[3,1] <- para[25]
+pars$phi[3,2] <- para[26]
+pars$phi[3,3] <- para[27]
   
-  # Mean vector
-  pars$mu[1]<-para[28]
-  pars$mu[2]<-para[29]
-  pars$mu[3]<-para[30]
+# Mean vector
+pars$mu[1]<-para[28]
+pars$mu[2]<-para[29]
+pars$mu[3]<-para[30]
   
-  # Transition covariance matrix of residuals
-  pars$Q[1,1] <- para[31]
-  pars$Q[2,1] <- para[32]
-  pars$Q[2,2] <- para[33]
-  pars$Q[3,1] <- para[34]
-  pars$Q[3,2] <- para[35]
-  pars$Q[3,3] <- para[36]
+# Transition covariance matrix of residuals
+pars$Q[1,1] <- para[31]
+pars$Q[2,1] <- para[32]
+pars$Q[2,2] <- para[33]
+pars$Q[3,1] <- para[34]
+pars$Q[3,2] <- para[35]
+pars$Q[3,3] <- para[36]
   
-  Q <- pars$Q %*% t(pars$Q) 
+Q <- pars$Q %*% t(pars$Q) 
   
-  v2   <- matrix(NA,T,W) # Filtered errors: are defined as the difference between the observed yield curve and its filtered estimate from KF
+v2   <- matrix(NA,T,W) # Filtered errors: are defined as the difference between the observed yield curve and its filtered estimate from KF
   
-  # Forecast 	
+# Resize data if Forecast is on.
   if(prev){#*** 
 	  a.tt <- matrix(NA, (T+M), N)
 	  a.t  <- matrix(NA, (T+M+1), N) # if prev=TRUE, always will be dim(a.t)[1]=348
@@ -117,54 +113,20 @@ kalman <- function(para,Y,lik,prev,ahead) {#***
 	  P.t  <- array(NA, c((T+1), N, N))
   }#***
   
-  # Start state vector and variance matrix
-  a.t[1, ]  <- pars$mu # Start state vector: pars$at0
-  P.t[1, ,] <- matrix(solve(diag(N^2) - kronecker(pars$phi,pars$phi)) %*% matrix(Q,(N^2),1),N,N)  # Start variance matrix: Lyapunov equation. pars$Pt0 # 
+# Start state vector and variance matrix
+a.t[1, ]  <- pars$mu # Start state vector: pars$at0
+
+# Start variance matrix
+source("lyapunov.R")  
+P.t[1, ,] <-lyapunov(N=N,phi=pars$phi,Q=Q) # Start variance matrix. pars$Pt0
   
-  # Initial loglikelihood	
-  logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
-  
-  # Filter
-  for (t in 1:T) 
-  {
-	v <- (as.numeric(Y[t, ])) - pars$Z %*% a.t[t, ] # prediciton error vector
-	F <- pars$Z %*% P.t[t, ,] %*% t(pars$Z) + H # prediciton error variance matrix
-		if(det(F)<=1e-30 || is.na(det(F)) || is.nan(det(F)) || is.infinite(det(F))){
-			logLik<- -1000000000000000; break
-		}else{
-    F.inv  <- solve(F)
-    # Log-likelihood
-    logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
-    # Updating the state vector and its variance matrix
-    a.tt[t, ]   <- a.t[t, ] +  P.t[t, , ] %*% t(pars$Z) %*% F.inv %*% v
-    P.tt[t, , ] <- P.t[t, , ] - P.t[t, , ] %*% t(pars$Z) %*% F.inv %*% pars$Z %*% P.t[t, , ]
-    v2[t, ] <- (as.numeric(Y[t, ])) - pars$Z %*% a.tt[t, ] # Filtered errors
-    # Predicting the state vector and its variance matrix
-    a.t[t + 1, ]  <- pars$phi %*% a.tt[t, ] + (diag(N) - pars$phi) %*% pars$mu  
-    P.t[t + 1, ,] <- pars$phi %*% P.tt[t, ,] %*% t(pars$phi) + Q
-	}
-	  # Forecast
-		if(prev) 
-		{
-		  if(t > (T - 1))
-			  for(m in 1:M)
-			  {
-				Yf[t + m,]<- pars$Z %*% a.t[t + m, ] 
-				a.tt[t + m, ]<- a.t[t + m, ]
-				P.tt[t + m, , ]<- P.t[t + m, , ]
-				a.t[t + m + 1, ]  <- pars$phi %*% a.tt[t + m, ] + (diag(N) - pars$phi) %*% pars$mu  
-				P.t[t + m + 1, ,] <- pars$phi %*% P.tt[t + m, ,] %*% t(pars$phi) + Q
-			  }
-		}
-	}	
-  if(lik)
-  {
-    as.numeric(-logLik)
-  }else
-  {
-    return(list(a.tt=a.tt,a.t=a.t,P.tt=P.tt,P.t=P.t,v2=v2,Yf=Yf)) #****
-  } 
+# Initial loglikelihood	
+logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
+
+source("Kfilter.R")  
+Kfilter(logLik=logLik,N=N,T=T,Y=Y,Z=pars$Z,a.t=a.t,P.t=P.t,H=H,a.tt=a.tt,P.tt=P.tt,v2=v2,phi=pars$phi,mu=pars$mu,Q=Q,prev=prev,M=M,Yf=Yf,lik=lik)
 }
+
 results<-kalman(para=para,Y=data,lik=lik,prev=prev,ahead=ahead) #**** 
 results
 
