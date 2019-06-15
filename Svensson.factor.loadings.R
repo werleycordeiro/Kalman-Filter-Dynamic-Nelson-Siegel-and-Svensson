@@ -1,4 +1,4 @@
-Z <- function(para,m)
+Svensson.factor.loadings <- function(para,m)
 {
   l1   <- para[1]
   l2   <- para[2]  
