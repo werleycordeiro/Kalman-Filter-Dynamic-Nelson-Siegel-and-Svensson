@@ -1,5 +1,5 @@
 # Filter
-Kfilter<-function(logLik,N,T,Y,Z,a.t,P.t,H,a.tt,P.tt,v2,phi,mu,Q,prev,M,Yf,lik){
+Kfilter<-function(logLik,N,T,Y,Z,a.t,P.t,H,a.tt,P.tt,v2,v1,phi,mu,Q,prev,M,Yf,lik){
 for (t in 1:T) 
 {
   v <- (as.numeric(Y[t, ])) - Z %*% a.t[t, ] # prediciton error vector

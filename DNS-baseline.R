@@ -129,7 +129,7 @@ logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
 
 # Kalman Filter and log-likelihood
 source("Kfilter.R")  
-Kfilter(logLik=logLik,N=N,T=T,Y=Y,Z=pars$Z,a.t=a.t,P.t=P.t,H=H,a.tt=a.tt,P.tt=P.tt,v2=v2,phi=pars$phi,mu=pars$mu,Q=Q,prev=prev,M=M,Yf=Yf,lik=lik)
+Kfilter(logLik=logLik,N=N,T=T,Y=Y,Z=pars$Z,a.t=a.t,P.t=P.t,H=H,a.tt=a.tt,P.tt=P.tt,v2=v2,v1=v1,phi=pars$phi,mu=pars$mu,Q=Q,prev=prev,M=M,Yf=Yf,lik=lik)
 }
 
 results<-kalman(para=para,Y=data,lik=lik,prev=prev,ahead=ahead) #**** 
