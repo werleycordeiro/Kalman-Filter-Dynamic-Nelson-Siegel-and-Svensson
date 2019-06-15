@@ -9,7 +9,12 @@ for (t in 1:T)
   }else{
     F.inv  <- solve(F)
     # Log-likelihood
-    logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
+    if(t=1){logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
+    }else{
+      if(t>1){logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
+      }
+    }
+    }
     # Updating the state vector and its variance matrix
     a.tt[t, ]   <- a.t[t, ] +  P.t[t, , ] %*% t(Z) %*% F.inv %*% v
     P.tt[t, , ] <- P.t[t, , ] - P.t[t, , ] %*% t(Z) %*% F.inv %*% Z %*% P.t[t, , ]
