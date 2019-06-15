@@ -10,9 +10,7 @@ for (t in 1:T)
     F.inv  <- solve(F)
     # Log-likelihood
     if(t==1){logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
-    }else{
-      if(t>=1){logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
-      }
+    }else{logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
     }
     }
     # Updating the state vector and its variance matrix
