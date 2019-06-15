@@ -147,21 +147,16 @@ results11
 
 # -1839.368
 
+#  Numerical Optimization  
 
-#  Otimização
+#  Nelder-Mead
 
-
-#---------------#
-#  Nelder-Mead  #
-#---------------#
 '
 otim <- optim(par=para,fn=kalman1,Y=data,lik=lik,gr=NULL,method="Nelder-Mead",
 control=list(trace=2,REPORT=2,maxit=10000000),hessian = FALSE)
 '
 
-#---------#
-# LB & UB #
-#---------#
+# Lower bound & Upper bound 
 
 low11<-c(0.0000001,0.0000001,
          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -194,10 +189,10 @@ up11<-c(0.99999,0.99999,
 #----------#
 #  nlminb  #
 #----------#
-'
-otim1<-nlminb(para11,kalman11,Y=data,lik=lik,gradient = NULL, hessian = NULL,control = list(trace=1,iter.max=50000,eval.max=50000,rel.tol=1e-5),
+
+otim1<-nlminb(para11,kalman11,Y=data,lik=lik,prev=prev,ahead=ahead,gradient = NULL, hessian = NULL,control = list(trace=1,iter.max=50000,eval.max=50000,rel.tol=1e-5),
 lower=low11,upper=up11)
-'
+
 #-----------------------#
 #  optim/optimParallel  #
 #-----------------------#
