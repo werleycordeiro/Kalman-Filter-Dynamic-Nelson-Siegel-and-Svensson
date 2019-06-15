@@ -1,5 +1,5 @@
 # Filter
-Kfilter<-function(N,T,Y,Z,a.t,P.t,H,a.tt,P.tt,v2,phi,mu,Q,prev,M,Yf){
+Kfilter<-function(N,T,Y,Z,a.t,P.t,H,a.tt,P.tt,v2,phi,mu,Q,prev,M,Yf,lik){
 for (t in 1:T) 
 {
   v <- (as.numeric(Y[t, ])) - Z %*% a.t[t, ] # prediciton error vector
@@ -33,5 +33,11 @@ for (t in 1:T)
         a.t[t + m + 1, ]  <- phi %*% a.tt[t + m, ] + (diag(N) - phi) %*% mu  
         P.t[t + m + 1, ,] <- phi %*% P.tt[t + m, ,] %*% t(phi) + Q
       }
+  }
+  if(lik)
+  {
+    as.numeric(-logLik)
+  }else{
+    return(list(a.tt=a.tt,a.t=a.t,P.tt=P.tt,P.t=P.t,v2=v2,Yf=Yf)) #****
   }
 }	
