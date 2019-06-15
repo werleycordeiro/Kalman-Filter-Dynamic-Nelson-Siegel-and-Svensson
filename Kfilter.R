@@ -1,5 +1,5 @@
 # Filter
-Kfilter<-function(N,T,Y,Z,a.t,P.t,H,a.tt,P.tt,v2,phi,mu,Q,prev,M,Yf,lik){
+Kfilter<-function(logLik,N,T,Y,Z,a.t,P.t,H,a.tt,P.tt,v2,phi,mu,Q,prev,M,Yf,lik){
 for (t in 1:T) 
 {
   v <- (as.numeric(Y[t, ])) - Z %*% a.t[t, ] # prediciton error vector
@@ -9,9 +9,7 @@ for (t in 1:T)
   }else{
     F.inv  <- solve(F)
     # Log-likelihood
-    if(t==1){logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
-    }else{logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
-    }
+    logLik <- logLik - 0.5 * (log(det(F)) + t(v) %*% F.inv %*% v) # constructed via the prediction error decomposition
     }
     # Updating the state vector and its variance matrix
     a.tt[t, ]   <- a.t[t, ] +  P.t[t, , ] %*% t(Z) %*% F.inv %*% v
