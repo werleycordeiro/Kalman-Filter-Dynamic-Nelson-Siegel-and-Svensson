@@ -55,14 +55,17 @@ pars<-list()
 W <- ncol(Y)
 N <- 3
   
-# Create vectors and matrix
+# Create vectors and matrices
 
 pars$mu	<- matrix(NA,N,1) # Mean vector
 pars$phi<- diag(N) # Vector Autoregressive coeffient matrix VAR(1)	
 pars$H	<- diag(ncol(Y)) # Variance matrix of residuals
 pars$Q	<- diag(N) # Transition covariance matrix of residuals
+
+# Loading matrix
+
 source("Nelson.Siegel.factor.loadings.R")
-pars$Z	<- Nelson.Siegel.factor.loadings(l,m) # Loading matrix
+pars$Z	<- Nelson.Siegel.factor.loadings(l,m) 
   
 # Variance matrix of residuals
 
@@ -97,7 +100,8 @@ pars$Q[3,2] <- para[35]
 pars$Q[3,3] <- para[36]
   
 Q <- pars$Q %*% t(pars$Q) 
-  
+
+v1   <- matrix(NA,T,W)			  
 v2   <- matrix(NA,T,W) # Filtered errors: are defined as the difference between the observed yield curve and its filtered estimate from KF
   
 # Resize data if Forecast is on.
@@ -120,9 +124,10 @@ a.t[1, ]  <- pars$mu # Start state vector: pars$at0
 source("lyapunov.R")  
 P.t[1, ,] <-lyapunov(N=N,phi=pars$phi,Q=Q) # Start variance matrix. pars$Pt0
   
-# Initial loglikelihood	
+# Initial log-likelihood	
 logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
 
+# Kalman Filter and log-likelihood
 source("Kfilter.R")  
 Kfilter(logLik=logLik,N=N,T=T,Y=Y,Z=pars$Z,a.t=a.t,P.t=P.t,H=H,a.tt=a.tt,P.tt=P.tt,v2=v2,phi=pars$phi,mu=pars$mu,Q=Q,prev=prev,M=M,Yf=Yf,lik=lik)
 }
