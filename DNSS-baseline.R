@@ -1,7 +1,6 @@
 # author: Werley Cordeiro
 # werleycordeiro@gmail.com
 
-
 # Data
 
 data<-read.csv("https://www.dropbox.com/s/inpnlugzkddp42q/bonds.csv?dl=1",header = TRUE, sep = ";")
@@ -29,31 +28,19 @@ para11<-c(0.077,0.077,
           0.01694981,0.02563889,0.88259125,
           0.00000000,0.00000000,0.00000000,0.690)
 
-# Kalman Filter function
 
 prev<- FALSE # TRUE to Forecast
 ahead<-12 # X-step ahead forecast
 lik<-TRUE # # TRUE to return the value of the log-likelihood function. FALSE to return parameters.
 
+# Kalman Filter function
+
 kalman11<-function(para,Y,lik,prev,ahead){
   
-  Z <- function(para)
-  {
-    l1   <- para[1]
-    l2   <- para[2]  
-    m <- c(3,6,9,12,15,18,21,24,30,36,48,60,72,84,96,108,120)
-    column1 <- rep.int(1,length(m))
-    column2 <- (1 / (l1 * m)) * exp(-l1 * m) * (exp(l1 * m) - 1)
-    column3 <- (1 / (l1 * m)) * exp(-l1 * m) * (-l1 * m + exp(l1 * m) - 1)
-    column4 <- (1 / (l2 * m)) * exp(-l2 * m) * (-l2 * m + exp(l2 * m) - 1)
-    
-    lambmat <- cbind(column1,column2,column3,column4)
-    
-    lambmat
-  }  
-  
-  M<-ahead#***
-  
+m <- c(3,6,9,12,15,18,21,24,30,36,48,60,72,84,96,108,120)  
+M<-ahead#***
+
+# Resize data if Forecast is on.
   if(prev){#***
     T <- nrow(Y)
     Yf<-Y
@@ -65,66 +52,73 @@ kalman11<-function(para,Y,lik,prev,ahead){
     Yf<-1
   }#***
   
-  pars<-list()
-  W <- ncol(Y)
-  N <- 4
+pars<-list()
+W <- ncol(Y)
+N <- 4
+  
+# Create vectors and matrices
   pars$mu	<- matrix(NA,N,1)
   pars$phi	<- diag(N)
   pars$H	<- diag(ncol(Y))
   pars$Q	<- diag(N)
-  pars$Z	<- Z(para=para)
   
-  # Disturbance covariance matrix 
+# Loading matrix
+  
+source("Svensson.factor.loadings.R")
+pars$Z	<- Svensson.factor.loadings(para=para,m=m)
+  
+# Variance matrix of residuals
   for(i in 1:17){
     pars$H[i,i]<-para[i+2]
   }
   
-  H <- pars$H %*% pars$H
+H <- pars$H %*% pars$H
   
-  # Matriz de coeficientes do VAR.
-  pars$phi[1,1] <- para[20]
-  pars$phi[1,2] <- para[21]
-  pars$phi[1,3] <- para[22]
-  pars$phi[1,4] <- para[23]
-  pars$phi[2,1] <- para[24]
-  pars$phi[2,2] <- para[25]
-  pars$phi[2,3] <- para[26]
-  pars$phi[2,4] <- para[27]
-  pars$phi[3,1] <- para[28]
-  pars$phi[3,2] <- para[29]
-  pars$phi[3,3] <- para[30]
-  pars$phi[3,4] <- para[31]
-  pars$phi[4,1] <- para[32]
-  pars$phi[4,2] <- para[33]
-  pars$phi[4,3] <- para[34]
-  pars$phi[4,4] <- para[35]
+# Vector autoregressive coeffient matrix: VAR(1)
+pars$phi[1,1] <- para[20]
+pars$phi[1,2] <- para[21]
+pars$phi[1,3] <- para[22]
+pars$phi[1,4] <- para[23]
+pars$phi[2,1] <- para[24]
+pars$phi[2,2] <- para[25]
+pars$phi[2,3] <- para[26]
+pars$phi[2,4] <- para[27]
+pars$phi[3,1] <- para[28]
+pars$phi[3,2] <- para[29]
+pars$phi[3,3] <- para[30]
+pars$phi[3,4] <- para[31]
+pars$phi[4,1] <- para[32]
+pars$phi[4,2] <- para[33]
+pars$phi[4,3] <- para[34]
+pars$phi[4,4] <- para[35]
   
-  # 3 mean state vector
-  pars$mu[1]<-para[36]
-  pars$mu[2]<-para[37]
-  pars$mu[3]<-para[38]
-  pars$mu[4]<-para[39]
+# Mean vector
+pars$mu[1]<-para[36]
+pars$mu[2]<-para[37]
+pars$mu[3]<-para[38]
+pars$mu[4]<-para[39]
   
-  # transition covariance matrix of residuals
-  pars$Q[1,1] <- para[40]
-  pars$Q[2,1] <- para[41]
-  pars$Q[2,2] <- para[42]
-  pars$Q[3,1] <- para[43]
-  pars$Q[3,2] <- para[44]
-  pars$Q[3,3] <- para[45]
-  pars$Q[4,1] <- para[46]
-  pars$Q[4,2] <- para[47]
-  pars$Q[4,3] <- para[48]
-  pars$Q[4,4] <- para[49]
+# transition covariance matrix of residuals
+pars$Q[1,1] <- para[40]
+pars$Q[2,1] <- para[41]
+pars$Q[2,2] <- para[42]
+pars$Q[3,1] <- para[43]
+pars$Q[3,2] <- para[44]
+pars$Q[3,3] <- para[45]
+pars$Q[4,1] <- para[46]
+pars$Q[4,2] <- para[47]
+pars$Q[4,3] <- para[48]
+pars$Q[4,4] <- para[49]
   
-  Q <- pars$Q %*% t(pars$Q) 
+Q <- pars$Q %*% t(pars$Q) 
   
-  v1   <- matrix(NA,T,W)			
-  v2   <- matrix(NA,T,W)
+v1   <- matrix(NA,T,W)			
+v2   <- matrix(NA,T,W)
   
+# Resize data if Forecast is on.
   if(prev){#***
     a.tt <- matrix(NA, (T+M), N)
-    a.t  <- matrix(NA, (T+M+1), N) # caso prev=TRUE, sempre será dim(a.t)[1]=348
+    a.t  <- matrix(NA, (T+M+1), N) # if prev=TRUE, always will be dim(a.t)[1]=348
     P.tt <- array(NA, c((T+M), N, N))
     P.t  <- array(NA, c((T+M+1), N, N))
   }else{
@@ -134,7 +128,8 @@ kalman11<-function(para,Y,lik,prev,ahead){
     P.t  <- array(NA, c((T+1), N, N))
   }#***
   
-  a.t[1, ]  <- pars$mu #pars$at0
+a.t[1, ]  <- pars$mu #pars$at0
+
 # Start variance matrix
 source("lyapunov.R")  
 P.t[1, ,] <-lyapunov(N=N,phi=pars$phi,Q=Q) # Start variance matrix. pars$Pt0
@@ -143,8 +138,8 @@ P.t[1, ,] <-lyapunov(N=N,phi=pars$phi,Q=Q) # Start variance matrix. pars$Pt0
 logLik <- - 0.5 * T * ncol(Y) * log(2 * pi)
 
 # Kalman Filter and log-likelihood
-Kfilter<-function(logLik,N,T,Y,Z,a.t,P.t,H,a.tt,P.tt,v2,phi,mu,Q,prev,M,Yf,lik)
-
+source("Kfilter.R")  
+Kfilter(logLik=logLik,N=N,T=T,Y=Y,Z=pars$Z,a.t=a.t,P.t=P.t,H=H,a.tt=a.tt,P.tt=P.tt,v2=v2,phi=pars$phi,mu=pars$mu,Q=Q,prev=prev,M=M,Yf=Yf,lik=lik)
 }
 
 results11<-kalman11(para=para11,Y=data,lik=lik,prev=prev,ahead=ahead) 
