@@ -1,5 +1,5 @@
 # Filter
-Kfilter<-function(N,T,Y,Z,at,Pt,H,att,Ptt,v2,phi,mu,Q,prev,M,Yf,){
+Kfilter<-function(N,T,Y,Z,at,Pt,H,att,Ptt,v2,phi,mu,Q,prev,M,Yf){
 for (t in 1:T) 
 {
   v <- (as.numeric(Y[t, ])) - pars$Z %*% a.t[t, ] # prediciton error vector
