@@ -50,6 +50,7 @@ M<-ahead #***
 		  T <- nrow(Y)
   }else{
 		  T <- nrow(Y)}#***
+		  Yf = 1
   
 pars<-list()
 W <- ncol(Y)
