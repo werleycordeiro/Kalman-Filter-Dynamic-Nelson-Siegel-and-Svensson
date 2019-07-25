@@ -49,8 +49,8 @@ M<-ahead #***
 		  Y<-Y[1:(T-M),]
 		  T <- nrow(Y)
   }else{
-		  T <- nrow(Y)}#***
-		  Yf = 1
+		  T <- nrow(Y)
+		  Yf = 1}#***
   
 pars<-list()
 W <- ncol(Y)
